@@ -40,16 +40,21 @@
 #include <iostream>
 #include <vector>
 #include <random>
+#include <algorithm>
 #include "formula.h"
 #include "Param.h"
 #include "Array.h"
 #include "Mapping.h"
 #include "NeuroSim.h"
+#include "Test.h"
 
 extern Param *param;
 
+extern std::vector< std::vector<double> > Input;
 extern std::vector< std::vector<double> > testInput;
+extern std::vector< std::vector<int> > dInput;
 extern std::vector< std::vector<int> > dTestInput;
+extern std::vector< std::vector<double> > Output;
 extern std::vector< std::vector<double> > testOutput;
 
 extern std::vector< std::vector<double> > weight1;
@@ -71,6 +76,89 @@ extern RowDecoder muxDecoderHO;
 extern DFF dffHO;
 
 extern int correct;		// # of correct prediction
+
+static int TrueLabel(const std::vector<double>& target) {
+	for (int i = 0; i < (int)target.size(); i++) {
+		if (target[i] > 0.5) {
+			return i;
+		}
+	}
+	return 0;
+}
+
+static void ForwardSoftware(const std::vector<double>& input, double *output) {
+	double hidden[param->nHide];
+	std::fill_n(hidden, param->nHide, 0);
+	std::fill_n(output, param->nOutput, 0);
+
+	for (int j = 0; j < param->nHide; j++) {
+		for (int k = 0; k < param->nInput; k++) {
+			hidden[j] += 2 * input[k] * weight1[j][k] - input[k];
+		}
+		hidden[j] = sigmoid(hidden[j]);
+	}
+
+	for (int j = 0; j < param->nOutput; j++) {
+		for (int k = 0; k < param->nHide; k++) {
+			output[j] += 2 * hidden[k] * weight2[j][k] - hidden[k];
+		}
+		output[j] = sigmoid(output[j]);
+	}
+}
+
+EvalMetrics EvaluateRange(bool trainingSet, int startIndex, int sampleCount, int confusion[10][10]) {
+	if (confusion) {
+		for (int r = 0; r < 10; r++) {
+			for (int c = 0; c < 10; c++) {
+				confusion[r][c] = 0;
+			}
+		}
+	}
+
+	int datasetSize = trainingSet ? param->numMnistTrainImages : param->numMnistTestImages;
+	int endIndex = std::min(startIndex + sampleCount, datasetSize);
+	int count = std::max(0, endIndex - startIndex);
+	if (count == 0) {
+		EvalMetrics empty = {0, 0};
+		return empty;
+	}
+
+	double output[param->nOutput];
+	double totalLoss = 0;
+	int numCorrect = 0;
+	const double eps = 1e-12;
+
+	for (int i = startIndex; i < endIndex; i++) {
+		const std::vector<double>& input = trainingSet ? Input[i] : testInput[i];
+		const std::vector<double>& target = trainingSet ? Output[i] : testOutput[i];
+		ForwardSoftware(input, output);
+
+		int predicted = 0;
+		double maxValue = output[0];
+		for (int j = 0; j < param->nOutput; j++) {
+			double y = target[j];
+			double p = std::min(std::max(output[j], eps), 1 - eps);
+			totalLoss += -(y * log(p) + (1 - y) * log(1 - p)) / param->nOutput;
+			if (output[j] > maxValue) {
+				maxValue = output[j];
+				predicted = j;
+			}
+		}
+
+		int truth = TrueLabel(target);
+		if (predicted == truth) {
+			numCorrect++;
+		}
+		if (confusion) {
+			confusion[truth][predicted]++;
+		}
+	}
+
+	EvalMetrics metrics;
+	metrics.crossEntropy = totalLoss / count;
+	metrics.accuracy = (double)numCorrect / count * 100;
+	return metrics;
+}
 
 /* Validation */
 void Validate() {

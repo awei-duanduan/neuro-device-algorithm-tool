@@ -37,6 +37,7 @@
 ********************************************************************************/
 
 #include <cstdio>
+#include <cstdlib>
 #include <vector>
 #include <random>
 #include "Param.h"
@@ -53,7 +54,16 @@ extern Array *arrayHO;
 
 /* Weights initialization */
 void WeightInitialize() {
-    srand(2);
+    int weightSeed = 2;
+    int trainSeed = 0;
+    FILE *fp_seed = fopen("run_seed.txt", "r");
+    if (fp_seed) {
+        if (fscanf(fp_seed, "%d %d", &weightSeed, &trainSeed) < 1) {
+            weightSeed = 2;
+        }
+        fclose(fp_seed);
+    }
+    srand(weightSeed);
     /* Initialize weights for the input layer */
     for (int i = 0; i < param->nHide; i++) {
         for (int j = 0; j < param->nInput; j++) {

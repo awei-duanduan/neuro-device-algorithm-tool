@@ -374,6 +374,7 @@ double NeuroSimSubArrayWriteLatency(SubArray *subArray, int numWriteOperationPer
 			}
 		}
 	}
+	return 0;
 }
 
 double NeuroSimSubArrayReadEnergy(SubArray *subArray) {	// For 1 weighted sum task on selected columns
@@ -637,6 +638,7 @@ double NeuroSimSubArrayLeakagePower(SubArray *subArray) {
 			}
 		}
 	}
+	return subArray->leakage;
 }
 
 void NeuroSimNeuronInitialize(SubArray *& subArray, InputParameter& inputParameter, Technology& tech, MemCell& cell, Adder& adder, Mux& mux, RowDecoder& muxDecoder, DFF& dff) {

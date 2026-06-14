@@ -39,6 +39,12 @@
 #ifndef TEST_H_
 #define TEST_H_
 
+struct EvalMetrics {
+	double crossEntropy;
+	double accuracy;
+};
+
 void Validate();
+EvalMetrics EvaluateRange(bool trainingSet, int startIndex, int sampleCount, int confusion[10][10]);
 
 #endif

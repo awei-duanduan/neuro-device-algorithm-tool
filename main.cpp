@@ -51,6 +51,19 @@
 #include "Mapping.h"
 #include "Definition.h"
 
+static int LoadTrainSeed() {
+	int weightSeed = 2;
+	int trainSeed = 0;
+	FILE *fp_seed = fopen("run_seed.txt", "r");
+	if (fp_seed) {
+		if (fscanf(fp_seed, "%d %d", &weightSeed, &trainSeed) < 2) {
+			trainSeed = 0;
+		}
+		fclose(fp_seed);
+	}
+	return trainSeed;
+}
+
 int main() {
 	gen.seed(0);
 	
@@ -116,18 +129,39 @@ int main() {
 	WeightInitialize();
 	if (param->useHardwareInTraining) { WeightToConductance(); }
 
-	srand(0);	// Pseudorandom number seed
+	int trainSeed = LoadTrainSeed();
+	printf("Training random seed: %d\n", trainSeed);
+	srand(trainSeed);	// Pseudorandom number seed
 	for (int i=1; i<=param->totalNumEpochs/param->interNumEpochs; i++) {
+		printf("NeuroSim progress: epoch %d/%d\n", i*param->interNumEpochs, param->totalNumEpochs);
+		fflush(stdout);
 		Train(param->numTrainImagesPerEpoch, param->interNumEpochs);
 		if (!param->useHardwareInTraining && param->useHardwareInTestingFF) { WeightToConductance(); }
 		Validate();
-		printf("Accuracy at %d epochs is : %.2f%\n", i*param->interNumEpochs, (double)correct/param->numMnistTestImages*100);
+		printf("Accuracy at %d epochs is : %.2f%%\n", i*param->interNumEpochs, (double)correct/param->numMnistTestImages*100);
+		EvalMetrics trainMetrics = EvaluateRange(true, 0, 2000, NULL);
+		EvalMetrics validationMetrics = EvaluateRange(false, 0, param->numMnistTestImages/2, NULL);
+		EvalMetrics testingMetrics = EvaluateRange(false, param->numMnistTestImages/2, param->numMnistTestImages/2, NULL);
+		printf("CrossEntropy at %d epochs: training=%.6f validation=%.6f testing=%.6f\n",
+			i*param->interNumEpochs, trainMetrics.crossEntropy, validationMetrics.crossEntropy, testingMetrics.crossEntropy);
 		/* Here the performance metrics of subArray also includes that of neuron peripheries (see Train.cpp and Test.cpp) */
 		printf("\tRead latency=%.4e s\n", subArrayIH->readLatency + subArrayHO->readLatency);
 		printf("\tWrite latency=%.4e s\n", subArrayIH->writeLatency + subArrayHO->writeLatency);
 		printf("\tRead energy=%.4e J\n", arrayIH->readEnergy + subArrayIH->readDynamicEnergy + arrayHO->readEnergy + subArrayHO->readDynamicEnergy);
 		printf("\tWrite energy=%.4e J\n", arrayIH->writeEnergy + subArrayIH->writeDynamicEnergy + arrayHO->writeEnergy + subArrayHO->writeDynamicEnergy);
+		fflush(stdout);
 	}
+	int confusion[10][10];
+	EvalMetrics finalMetrics = EvaluateRange(false, 0, param->numMnistTestImages, confusion);
+	printf("Final evaluation accuracy: %.2f%%\n", finalMetrics.accuracy);
+	printf("ConfusionMatrix counts begin\n");
+	for (int r=0; r<10; r++) {
+		for (int c=0; c<10; c++) {
+			printf("%d%s", confusion[r][c], (c == 9) ? "" : " ");
+		}
+		printf("\n");
+	}
+	printf("ConfusionMatrix counts end\n");
 	printf("\n");
 	return 0;
 }

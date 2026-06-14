@@ -40,6 +40,10 @@
 #include "formula.h"
 #include "Cell.h"
 
+static double SafeSigma(double sigma) {
+	return (sigma > 0) ? sigma : 1e-30;
+}
+
 /* General eNVM */
 void AnalogNVM::WriteEnergyCalculation(double wireCapCol) {
 	if (nonlinearIV) {  // Currently only for cross-point array
@@ -181,7 +185,7 @@ IdealDevice::IdealDevice(int x, int y) {
 	}
 	readNoise = false;	// Consider read noise or not
 	sigmaReadNoise = 0.25;	// Sigma of read noise in gaussian distribution
-	gaussian_dist = new std::normal_distribution<double>(0, sigmaReadNoise);	// Set up mean and stddev for read noise
+	gaussian_dist = new std::normal_distribution<double>(0, SafeSigma(sigmaReadNoise));	// Set up mean and stddev for read noise
 	
 	/* Conductance range variation */	
 	conductanceRangeVar = false;	// Consider variation of conductance range or not
@@ -189,8 +193,8 @@ IdealDevice::IdealDevice(int x, int y) {
 	minConductanceVar = 0;	// Sigma of minConductance variation (S)
 	std::mt19937 localGen;
 	localGen.seed(std::time(0));
-	gaussian_dist_maxConductance = new std::normal_distribution<double>(0, maxConductanceVar);
-	gaussian_dist_minConductance = new std::normal_distribution<double>(0, minConductanceVar);
+	gaussian_dist_maxConductance = new std::normal_distribution<double>(0, SafeSigma(maxConductanceVar));
+	gaussian_dist_minConductance = new std::normal_distribution<double>(0, SafeSigma(minConductanceVar));
 	if (conductanceRangeVar) {
 		maxConductance += (*gaussian_dist_maxConductance)(localGen);
 		minConductance += (*gaussian_dist_minConductance)(localGen);
@@ -251,8 +255,8 @@ void IdealDevice::Write(double deltaWeightNormalized) {
 /* Real Device */
 RealDevice::RealDevice(int x, int y) {
 	this->x = x; this->y = y;	// Cell location: x (column) and y (row) start from index 0
-	maxConductance = 3.8462e-8;		// Maximum cell conductance (S)
-	minConductance = 3.0769e-9;	// Minimum cell conductance (S)
+	maxConductance = 3.47e-08;		// Maximum cell conductance (S)
+	minConductance = 1e-08;	// Minimum cell conductance (S)
 	avgMaxConductance = maxConductance; // Average maximum cell conductance (S)
 	avgMinConductance = minConductance; // Average minimum cell conductance (S)
 	conductance = minConductance;	// Current conductance (S) (dynamic variable)
@@ -261,11 +265,11 @@ RealDevice::RealDevice(int x, int y) {
 	readPulseWidth = 5e-9;	// Read pulse width (s) (will be determined by ADC)
 	writeVoltageLTP = 3.2;	// Write voltage (V) for LTP or weight increase
 	writeVoltageLTD = 2.8;	// Write voltage (V) for LTD or weight decrease
-	writePulseWidthLTP = 300e-6;	// Write pulse width (s) for LTP or weight increase
-	writePulseWidthLTD = 300e-6;	// Write pulse width (s) for LTD or weight decrease
+	writePulseWidthLTP = 0.0003;	// Write pulse width (s) for LTP or weight increase
+	writePulseWidthLTD = 0.0003;	// Write pulse width (s) for LTD or weight decrease
 	writeEnergy = 0;	// Dynamic variable for calculation of write energy (J)
-	maxNumLevelLTP = 97;	// Maximum number of conductance states during LTP or weight increase
-	maxNumLevelLTD = 100;	// Maximum number of conductance states during LTD or weight decrease
+	maxNumLevelLTP = 20;	// Maximum number of conductance states during LTP or weight increase
+	maxNumLevelLTD = 20;	// Maximum number of conductance states during LTD or weight decrease
 	numPulse = 0;	// Number of write pulses used in the most recent write operation (dynamic variable)
 	cmosAccess = true;	// True: Pseudo-crossbar (1T1R), false: cross-point
 	FeFET = false;		// True: FeFET structure (Pseudo-crossbar only, should be cmosAccess=1)
@@ -294,7 +298,7 @@ RealDevice::RealDevice(int x, int y) {
 	}
 	readNoise = false;		// Consider read noise or not
 	sigmaReadNoise = 0;		// Sigma of read noise in gaussian distribution
-	gaussian_dist = new std::normal_distribution<double>(0, sigmaReadNoise);	// Set up mean and stddev for read noise
+	gaussian_dist = new std::normal_distribution<double>(0, SafeSigma(sigmaReadNoise));	// Set up mean and stddev for read noise
 
 	std::mt19937 localGen;	// It's OK not to use the external gen, since here the device-to-device vairation is a one-time deal
 	localGen.seed(std::time(0));
@@ -303,20 +307,20 @@ RealDevice::RealDevice(int x, int y) {
 	NL_LTP = 2.4;	// LTP nonlinearity
 	NL_LTD = -4.88;	// LTD nonlinearity
 	sigmaDtoD = 0;	// Sigma of device-to-device weight update vairation in gaussian distribution
-	gaussian_dist2 = new std::normal_distribution<double>(0, sigmaDtoD);	// Set up mean and stddev for device-to-device weight update vairation
-	paramALTP = getParamA(NL_LTP + (*gaussian_dist2)(localGen)) * maxNumLevelLTP;	// Parameter A for LTP nonlinearity
-	paramALTD = getParamA(NL_LTD + (*gaussian_dist2)(localGen)) * maxNumLevelLTD;	// Parameter A for LTD nonlinearity
+	gaussian_dist2 = new std::normal_distribution<double>(0, SafeSigma(sigmaDtoD));	// Set up mean and stddev for device-to-device weight update vairation
+	paramALTP = 3.22048049026;	// Parameter A for LTP nonlinearity (fitted by MATLAB)
+	paramALTD = -5.26961144505;	// Parameter A for LTD nonlinearity (fitted by MATLAB)
 
 	/* Cycle-to-cycle weight update variation */
-	sigmaCtoC = 0.035 * (maxConductance - minConductance);	// Sigma of cycle-to-cycle weight update vairation: defined as the percentage of conductance range
-	gaussian_dist3 = new std::normal_distribution<double>(0, sigmaCtoC);    // Set up mean and stddev for cycle-to-cycle weight update vairation
+	sigmaCtoC = 0.0628282992563 * (maxConductance - minConductance);	// Sigma of cycle-to-cycle weight update vairation: defined as the percentage of conductance range
+	gaussian_dist3 = new std::normal_distribution<double>(0, SafeSigma(sigmaCtoC));    // Set up mean and stddev for cycle-to-cycle weight update vairation
 
 	/* Conductance range variation */
 	conductanceRangeVar = false;    // Consider variation of conductance range or not
 	maxConductanceVar = 0;  // Sigma of maxConductance variation (S)
 	minConductanceVar = 0;  // Sigma of minConductance variation (S)
-	gaussian_dist_maxConductance = new std::normal_distribution<double>(0, maxConductanceVar);
-	gaussian_dist_minConductance = new std::normal_distribution<double>(0, minConductanceVar);
+	gaussian_dist_maxConductance = new std::normal_distribution<double>(0, SafeSigma(maxConductanceVar));
+	gaussian_dist_minConductance = new std::normal_distribution<double>(0, SafeSigma(minConductanceVar));
 	if (conductanceRangeVar) {
 		maxConductance += (*gaussian_dist_maxConductance)(localGen);
 		minConductance += (*gaussian_dist_minConductance)(localGen);
@@ -461,7 +465,7 @@ MeasuredDevice::MeasuredDevice(int x, int y) {
 	readNoise = false;		// Consider read noise or not
 	sigmaReadNoise = 0.0289;	// Sigma of read noise in gaussian distribution
 	NL = 10;	// Nonlinearity in write scheme (the current ratio between Vw and Vw/2), assuming for the LTP side
-	gaussian_dist = new std::normal_distribution<double>(0, sigmaReadNoise);    // Set up mean and stddev for read noise
+	gaussian_dist = new std::normal_distribution<double>(0, SafeSigma(sigmaReadNoise));    // Set up mean and stddev for read noise
 	symLTPandLTD = false;	// True: use LTP conductance data for LTD
 
 	/* LTP */
@@ -646,7 +650,7 @@ DigitalNVM::DigitalNVM(int x, int y) {
 	}
 	readNoise = false;		// Consider read noise or not
 	sigmaReadNoise = 0.25;	// Sigma of read noise in gaussian distribution
-	gaussian_dist = new std::normal_distribution<double>(0, sigmaReadNoise);    // Set up mean and stddev for read noise
+	gaussian_dist = new std::normal_distribution<double>(0, SafeSigma(sigmaReadNoise));    // Set up mean and stddev for read noise
 	refCurrent = readVoltage * (avgMaxConductance + avgMinConductance) / 2;	// Set up reference current for sensing
 
 	/* Conductance range variation */
@@ -655,8 +659,8 @@ DigitalNVM::DigitalNVM(int x, int y) {
 	minConductanceVar = 0;  // Sigma of minConductance variation (S)
 	std::mt19937 localGen;
 	localGen.seed(std::time(0));
-	gaussian_dist_maxConductance = new std::normal_distribution<double>(0, maxConductanceVar);
-	gaussian_dist_minConductance = new std::normal_distribution<double>(0, minConductanceVar);
+	gaussian_dist_maxConductance = new std::normal_distribution<double>(0, SafeSigma(maxConductanceVar));
+	gaussian_dist_minConductance = new std::normal_distribution<double>(0, SafeSigma(minConductanceVar));
 	if (conductanceRangeVar) {
 		maxConductance += (*gaussian_dist_maxConductance)(localGen);
 		minConductance += (*gaussian_dist_minConductance)(localGen);

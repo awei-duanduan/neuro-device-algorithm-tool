@@ -46,10 +46,10 @@ Param::Param() {
 	
 	/* Algorithm parameters */
 	numTrainImagesPerEpoch = 8000;	// # of training images per epoch
-	totalNumEpochs = 125;	// Total number of epochs
+	totalNumEpochs = 30;	// Total number of epochs
 	interNumEpochs = 1;		// Internal number of epochs (print out the results every interNumEpochs)
-	nInput = 400;     // # of neurons in input layer
-	nHide = 100;      // # of neurons in hidden layer
+	nInput = 784;     // # of neurons in input layer
+	nHide = 30;      // # of neurons in hidden layer
 	nOutput = 10;     // # of neurons in output layer
 	alpha1 = 0.2;	// Learning rate for the weights from input to hidden layer
 	alpha2 = 0.1;	// Learning rate for the weights from hidden to output layer

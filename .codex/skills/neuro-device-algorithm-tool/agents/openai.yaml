@@ -1,0 +1,3 @@
+display_name: Neuro Device Algorithm Tool
+short_description: Check and run the neural-device GUI.
+default_prompt: Check the environment for the nonvolatile neural-device algorithm recognition tool, then help me run or modify the MATLAB GUI workflow.

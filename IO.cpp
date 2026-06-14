@@ -71,20 +71,20 @@ void ReadTrainingDataFromFile(const char *trainPatchFileName, const char *trainL
 
 	int i = 0;
 	int j = 0;
-	while (fscanf(fp_patch, "%lf", &Input[i][j]) != EOF){
-		Input[i][j] = truncate(Input[i][j], param->numInputLevel - 1, param->BWthreshold);
-		dInput[i][j] = round(Input[i][j] * (param->numInputLevel - 1));
-		i += 1;
-		if (i%param->numMnistTrainImages == 0){
-			j += 1;
-			i = 0;
+	for (j = 0; j < param->nInput; j++) {
+		for (i = 0; i < param->numMnistTrainImages; i++) {
+			if (fscanf(fp_patch, "%lf", &Input[i][j]) != 1) {
+				std::cout << trainPatchFileName << " has fewer values than expected!\n";
+				exit(-1);
+			}
+			Input[i][j] = truncate(Input[i][j], param->numInputLevel - 1, param->BWthreshold);
+			dInput[i][j] = round(Input[i][j] * (param->numInputLevel - 1));
 		}
 	}
 
 	i = 0;
-	j = 0;
 	int k = 0;
-	while (fscanf(fp_label, "%d", &k) != EOF){
+	while (fscanf(fp_label, "%d", &k) == 1){
 		Output[i][k] = 1;
 		i += 1;
 	}
@@ -108,19 +108,20 @@ void ReadTestingDataFromFile(const char *testPatchFileName, const char *testLabe
 
 	int i = 0;
 	int j = 0;
-	while (fscanf(fp_patch, "%lf", &testInput[i][j]) != EOF){
-		testInput[i][j] = truncate(testInput[i][j], param->numInputLevel - 1, param->BWthreshold);
-		dTestInput[i][j] = round(testInput[i][j] * (param->numInputLevel - 1));
-		i += 1;
-		if (i%param->numMnistTestImages == 0){
-			j += 1;
-			i = 0;
+	for (j = 0; j < param->nInput; j++) {
+		for (i = 0; i < param->numMnistTestImages; i++) {
+			if (fscanf(fp_patch, "%lf", &testInput[i][j]) != 1) {
+				std::cout << testPatchFileName << " has fewer values than expected!\n";
+				exit(-1);
+			}
+			testInput[i][j] = truncate(testInput[i][j], param->numInputLevel - 1, param->BWthreshold);
+			dTestInput[i][j] = round(testInput[i][j] * (param->numInputLevel - 1));
 		}
 	}
 	i = 0;
 	j = 0;
 	int k = 0;
-	while (fscanf(fp_label, "%d", &k) != EOF){
+	while (fscanf(fp_label, "%d", &k) == 1){
 		testOutput[i][k] = 1;
 		i += 1;
 	}

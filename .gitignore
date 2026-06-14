@@ -1,4 +1,59 @@
+# Build artifacts
 *.o
+*.obj
 *.out
-*.txt
+*.exe
 main
+.depend
+
+# Python environments and caches
+.venv*/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Downloaded datasets and local dataset cache
+TorchData/
+Datasets/
+MNIST_data.zip
+patch*_train.txt
+patch*_test.txt
+label*_train.txt
+label*_test.txt
+
+# Generated reports, figures, and run logs
+rc_results*/
+torch_results*/
+*_run_log.txt
+neurosim_run_log.txt
+torch_cuda_run_log.txt
+rc_run_log.txt
+metric_smoke_*.txt
+accuracy_curve.png
+loss_curve.png
+confusion_matrix*.png
+confusion_matrix*.csv
+accuracy_history.csv
+loss_history.csv
+fit_device_result.*
+gui_layout_*.png
+run_*.bat
+run_seed.txt
+
+# Local backups and temporary files
+*.bak.*
+*.tmp
+*.log
+
+# Local literature/source documents
+paper_page_refs/
+*.pdf
+*.docx
+*.xlsx
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
