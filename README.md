@@ -207,6 +207,7 @@ https://github.com/awei-duanduan/neuro-device-algorithm-tool.git
 请执行 clone、创建 Python 虚拟环境、安装依赖、读取 .codex/skills/neuro-device-algorithm-tool、运行 tools/first_run_setup.py。
 如果缺少 MATLAB、MSYS2/MinGW、PyTorch CUDA 或 NVIDIA 驱动，请告诉我具体缺什么以及如何安装。
 初始化完成后，打开 MATLAB GUI，并说明如何进行 LTP/LTD 拟合、Run Neural Network、Run PyTorch CUDA 和 Reservoir Computing。
+安装 MSYS2/MinGW，下载EMNIST。检查该程序使其能够在本机上运行，并且所有功能都能实现。
 ```
 
 更多提示词见 `docs/codex-start.md`。
